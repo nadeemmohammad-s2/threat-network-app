@@ -1,0 +1,61 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Threat Network App — Docker Compose
+# ─────────────────────────────────────────────────────────────────────────────
+# Usage:
+#   docker compose up -d          # Start everything
+#   docker compose logs -f api    # Watch API logs
+#   docker compose down -v        # Tear down (including data)
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: '3.8'
+
+services:
+  # ── PostgreSQL 16 ──────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: threat-network-db
+    environment:
+      POSTGRES_DB: threat_network
+      POSTGRES_USER: threat_admin
+      POSTGRES_PASSWORD: changeme
+    ports:
+      - "5432:5432"
+    volumes:
+      # SQL files auto-execute in alphabetical order on first start
+      - ./db/01_scd2_audit.sql:/docker-entrypoint-initdb.d/01_scd2_audit.sql
+      - ./db/02_provenance.sql:/docker-entrypoint-initdb.d/02_provenance.sql
+      - ./db/03_seed.sql:/docker-entrypoint-initdb.d/03_seed.sql
+      # Persistent data volume
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U threat_admin -d threat_network"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── Express API ────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: threat-network-api
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: threat_network
+      DB_USER: threat_admin
+      DB_PASSWORD: changeme
+      PORT: 3001
+      NODE_ENV: development
+      CORS_ORIGINS: http://localhost:3000,http://localhost:5173
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # Mount source for live development
+      - ./api/src:/app/src
+
+volumes:
+  pgdata:
