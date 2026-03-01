@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
 // ─── API ─────────────────────────────────────────────────────────────────────
-const API_BASE = import.meta.env.VITE_API_URL ? `${import.meta.env.VITE_API_URL}/api` : "/api";
+const API_BASE = "https://threat-network-api-807423602117.us-central1.run.app/api";
 async function api(path, opts = {}) {
   const r = await fetch(`${API_BASE}${path}`, { headers: { "Content-Type": "application/json", ...opts.headers }, ...opts });
   if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(b.error || `API ${r.status}`); }
