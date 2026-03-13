@@ -134,7 +134,7 @@ export default function App() {
       )}
       {view === 'admin' && isAdmin
         ? <div>Admin Panel — coming soon</div>
-        : <ThreatNetworkApp user={user} onLogout={handleLogout} />
+        : <ThreatNetworkApp />
       }
     </>
   );
