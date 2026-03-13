@@ -3,7 +3,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 // ─── API ─────────────────────────────────────────────────────────────────────
 const API_BASE = "https://threat-network-api-807423602117.us-central1.run.app/api";
 async function api(path, opts = {}) {
-  const r = await fetch(`${API_BASE}${path}`, { headers: { "Content-Type": "application/json", ...opts.headers }, ...opts });
+  const sid = localStorage.getItem('sid');
+  const headers = { "Content-Type": "application/json", ...opts.headers };
+  if (sid) headers['x-session-id'] = sid;
+  const r = await fetch(`${API_BASE}${path}`, { ...opts, headers, credentials: 'include' });
+  if (r.status === 401) { window.location.href = '/'; return; }
   if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(b.error || `API ${r.status}`); }
   return r.json();
 }
