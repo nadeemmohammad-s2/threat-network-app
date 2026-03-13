@@ -1,7 +1,14 @@
-export default function LoginScreen({ error }: { error: boolean }) {
+export default function LoginScreen({ error }: { error: string | null }) {
   const handleLogin = () => {
     window.location.href =
       'https://threat-network-api-807423602117.us-central1.run.app/auth/google';
+  };
+
+  const errorMessages: Record<string, string> = {
+    unauthorized:    'Access denied. Only @section2.com accounts are permitted.',
+    deactivated:     'Your account has been deactivated. Contact your administrator.',
+    session_expired: 'Your session expired. Please sign in again.',
+    session_error:   'Session error. Please try again.',
   };
 
   return (
@@ -22,9 +29,13 @@ export default function LoginScreen({ error }: { error: boolean }) {
           Sign in with your Section2 Google account to continue
         </p>
         {error && (
-          <p style={{ color: '#dc2626', marginBottom: 16, fontSize: 13 }}>
-            Access denied. Only @section2.com accounts are permitted.
-          </p>
+          <div style={{
+            background: '#fef2f2', border: '1px solid #fecaca',
+            borderRadius: 8, padding: '12px 16px', marginBottom: 20,
+            color: '#dc2626', fontSize: 13
+          }}>
+            {errorMessages[error] || 'An error occurred. Please try again.'}
+          </div>
         )}
         <button onClick={handleLogin} style={{
           display: 'flex', alignItems: 'center', gap: 12,
