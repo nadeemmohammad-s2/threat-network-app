@@ -11,11 +11,20 @@ const { isAuthenticated } = require('./middleware/auth');
 const app  = express();
 const PORT = process.env.PORT || 3001;
 
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:3000').split(',');
 app.use(cors({
-  origin: (process.env.CORS_ORIGINS || 'http://localhost:3000').split(','),
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) callback(null, true);
+    else callback(new Error('Not allowed by CORS'));
+  },
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+app.options('*', cors());
 app.use(express.json({ limit: '10mb' }));
+
+app.set('trust proxy', 1);
 
 app.use(session({
   store: new PgSession({ pool, tableName: 'user_sessions', pruneSessionInterval: 900 }),
@@ -23,7 +32,8 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   rolling: true,
-  cookie: { secure: true, httpOnly: true, maxAge: 28800000, sameSite: 'none' },
+  cookie: { secure: true, httpOnly: true, maxAge: 28800000, sameSite: 'none', partitioned: false },
+  proxy: true,
 }));
 
 app.use(passport.initialize());
