@@ -31,8 +31,17 @@ app.set('trust proxy', 1);
 // Allow session ID to be passed via header (for cross-origin deployments)
 app.use((req, res, next) => {
   const sid = req.headers['x-session-id'];
-  if (sid && !req.cookies) req.cookies = {};
-  if (sid) req.headers.cookie = 'connect.sid=s%3A' + sid + '; ' + (req.headers.cookie || '');
+  if (sid) {
+    const crypto = require('crypto');
+    const secret = process.env.SESSION_SECRET;
+    const signed = 's:' + sid + '.' + crypto
+      .createHmac('sha256', secret)
+      .update(sid)
+      .digest('base64')
+      .replace(/=+$/, '');
+    const encoded = 'connect.sid=' + encodeURIComponent(signed);
+    req.headers.cookie = encoded + (req.headers.cookie ? '; ' + req.headers.cookie : '');
+  }
   next();
 });
 
