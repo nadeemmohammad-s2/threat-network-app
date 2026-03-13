@@ -3,6 +3,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 require('dotenv').config();
+const session = require('express-session');
+const PgSession = require('connect-pg-simple')(session);
+const passport = require('./auth');
+const { pool } = require('./db/pool');
 
 const express = require('express');
 const cors = require('cors');
@@ -17,6 +21,22 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
+// ── Session ───────────────────────────────────────────────────────────────────
+app.use(session({
+  store: new PgSession({ pool, tableName: 'user_sessions' }),
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: true,         // HTTPS only (required on Cloud Run)
+    httpOnly: true,
+    maxAge: 8 * 60 * 60 * 1000, // 8 hours
+    sameSite: 'none',     // Required for cross-origin cookies
+  },
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 // Request logging
 app.use((req, res, next) => {
@@ -31,12 +51,21 @@ app.use((req, res, next) => {
 });
 
 // ── Routes ───────────────────────────────────────────────────────────────────
-app.use('/api/threat-networks', require('./routes/threatNetworks'));
-app.use('/api/entities', require('./routes/entities'));
-app.use('/api/ref', require('./routes/refTables'));
-app.use('/api/junctions', require('./routes/junctions'));
-app.use('/api/provenance', require('./routes/provenance'));
-app.use('/api/audit', require('./routes/audit'));
+app.use('/auth', require('./routes/authRoutes'));
+
+// ── Auth guard ────────────────────────────────────────────────────────────────
+const isAuthenticated = (req, res, next) => {
+  if (req.isAuthenticated()) return next();
+  res.status(401).json({ error: 'Unauthorized' });
+};
+
+app.use('/api/threat-networks', isAuthenticated, require('./routes/threatNetworks'));
+app.use('/api/entities',        isAuthenticated, require('./routes/entities'));
+app.use('/api/ref',             isAuthenticated, require('./routes/refTables'));
+app.use('/api/junctions',       isAuthenticated, require('./routes/junctions'));
+app.use('/api/htf',             isAuthenticated, require('./routes/htfTables'));
+app.use('/api/provenance',      isAuthenticated, require('./routes/provenance'));
+app.use('/api/audit',           isAuthenticated, require('./routes/audit'));
 
 // Health check
 app.get('/api/health', async (req, res) => {
