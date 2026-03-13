@@ -97,15 +97,6 @@ export default function App() {
     return () => clearInterval(interval);
   }, [user, lastActivity]);
 
-  const handleLogout = async () => {
-    await apiFetch('/auth/logout', { method: 'POST' });
-    localStorage.removeItem('sid');
-    sessionId = null;
-    setUser(null);
-    setError(null);
-    setView('app');
-  };
-
   const isAdmin = user?.groups?.includes('admins');
 
   if (loading) return (
