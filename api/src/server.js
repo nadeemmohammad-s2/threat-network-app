@@ -26,6 +26,14 @@ app.use(express.json({ limit: '10mb' }));
 
 app.set('trust proxy', 1);
 
+// Allow session ID to be passed via header (for cross-origin deployments)
+app.use((req, res, next) => {
+  const sid = req.headers['x-session-id'];
+  if (sid && !req.cookies) req.cookies = {};
+  if (sid) req.headers.cookie = 'connect.sid=s%3A' + sid + '; ' + (req.headers.cookie || '');
+  next();
+});
+
 app.use(session({
   store: new PgSession({ pool, tableName: 'user_sessions', pruneSessionInterval: 900 }),
   secret: process.env.SESSION_SECRET,
